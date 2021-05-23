@@ -3,7 +3,9 @@ import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from tqdm.auto import tqdm
 from collections import OrderedDict
+from fixer import get_fixed_and_auged_df
 
 CODE_DICT = {
     '1T00627': 'civil',
@@ -73,6 +75,8 @@ class DCourse:
         self.df = pd.read_csv(csv_path)
         self.meta = {}
         self._set_data(data)
+        self.raw_df = self.df
+        self.df = get_fixed_and_auged_df(self)
 
     def _set_data(self, data):
         keys = []
@@ -122,23 +126,19 @@ class DCourse:
 class DCourses(DMap):
     def _set_data(self, data):
         self.keys = tuple(data.keys())
-        for k in self.keys:
+        for k in tqdm(self.keys, leave=False):
             setattr(self, k, DCourse(data[k]))
-
-class DYear(DMap):
-    def _set_data(self, data):
-        self.keys = tuple(data.keys())
-        for k in self.keys:
-            setattr(self, k, DCourses(data[k]))
 
 class D(DMap):
     def __init__(self, root="data"):
+        print("cleaning and loading data...")
         root = Path(root)
         json_list = load_all_json(root)
         json_dict = dictify_json(json_list)
         self._set_data(json_dict)
+        print("done")
 
     def _set_data(self, data):
         self.keys = tuple(data.keys())
-        for key in self.keys:
+        for key in tqdm(self.keys, leave=False):
             setattr(self, key, DCourses(data[key]))
